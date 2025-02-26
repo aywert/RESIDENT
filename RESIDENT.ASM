@@ -2,62 +2,128 @@
 .code
 org 100h
 
-start:     
+start:
+;----------------------------------------------------------------------------
+;                           SETTING OF NEW 08 INTERRAPTION
+;----------------------------------------------------------------------------
+        xor ax, ax                  ; ax = 0000
+        mov es, ax                  ; es = address of interruptions table in RAM 
+        mov bx, 08h * 4             ; colculate address of New09 int
+
+        mov ax, es:[bx]
+        mov Old08RelAdrs, ax
+        mov ax, es:[bx+2]
+        mov Old08Segment, ax
+
+        ;int 08h                     ; calls old 9th interruptions
+
+        cli                         ; resctiction to operate interruptions
+        mov es:[bx], offset New08
+        push cs
+        pop  ax
+        mov es:[bx+2], ax           ; segment address in th interruotion table
+        sti                         ; permision to operate interruptions
+        
+        ;int 08h 
+
+        ;mov ah, 31h
+        ;mov dx, offset End_Of_Programm
+        ;shr dx, 4
+        ;inc dx
+        ;int 21h
+
+
 ;----------------------------------------------------------------------------
 ;                           SETTING OF NEW 09 INTERRAPTION
 ;----------------------------------------------------------------------------
-            xor ax, ax                  ; ax = 0000
-            mov es, ax                  ; es = address of interruptions table in RAM 
-            mov bx, 09h * 4             ; colculate address of New09 int
+        xor ax, ax                  ; ax = 0000
+        mov es, ax                  ; es = address of interruptions table in RAM 
+        mov bx, 09h * 4             ; colculate address of New09 int
 
-            mov ax, es:[bx]
-            mov Old09RelAdrs, ax
-            mov ax, es:[bx+2]
-            mov Old09Segment, ax
+        mov ax, es:[bx]
+        mov Old09RelAdrs, ax
+        mov ax, es:[bx+2]
+        mov Old09Segment, ax
 
-            жint 09h                     ; calls old 9th interruptions
+        ;int 09h                     ; calls old 9th interruptions
 
-            cli                         ; resctiction to operate interruptions
-            mov es:[bx], offset New09
-            push cs
-            pop  ax
-            mov es:[bx+2], ax           ; segment address in th interruotion table
-            sti                         ; permision to operate interruptions
-            
-            int 09h 
-
-            mov ah, 31h
-            mov dx, offset End_Of_Programm
-            shr dx, 4
-            inc dx
-            int 21h
-
-            
-            ;mov bx, 0b800h
-            ;mov es, bx
-            ;mov bx, 5*80*2 + 40*2
-            ;mov ah, 13
-;---------------------------------------------------------------------------
-;                               DRAW FRAME
-;---------------------------------------------------------------------------
-            ;mov si, offset StyleStr ;mov si, offset StyleStr
-
-            ;mov bx, 0b800h
-            ;mov es, bx
-            ;call CntStartPosition
-            ;mov ah, Color_style
+        cli                         ; resctiction to operate interruptions
+        mov es:[bx], offset New09
+        push cs
+        pop  ax
+        mov es:[bx+2], ax           ; segment address in th interruotion table
+        sti                         ; permision to operate interruptions
         
-            ;call DrawFrame
-;---------------------------------------------------------------------------
+         
+;-----------------------------------------------------------------------------------
+        int 09h
+        int 08h
+
+        mov ah, 31h
+        mov dx, offset End_Of_Programm
+        shr dx, 4
+        inc dx
+        int 21h
+
+        
+New08   proc
+        push ax
+        push bx
+        push cx
+        push dx
+        push es
+        push si
+        push ds
+        push di
+
+        push cs
+        pop ds
+
+        cmp Active, 1
+        jne NOREGISTERS
+        ;mov si, offset StyleStr ;mov si, offset StyleStr
+
+        ;mov bx, 0b800h
+        ;mov es, bx
+        ;call CntStartPosition
+
+        ;call DrawFrame
+        mov bx, 0b800h
+        mov es, bx
+        mov ah, Color_style
+        ;mov bx, 0FABCh
+        ;call Print_value
+        call PrintRegisters
+
+        NOREGISTERS:
+
+        pop di
+        pop ds
+        pop si
+        pop es
+        pop dx
+        pop cx
+        pop bx
+        pop ax
+
+        nop
+        nop
+        nop
+
+        db 0eah 
+        Old08RelAdrs dw 0
+        Old08Segment dw 0
+
+        ;mov al, 20h
+        ;out 20h, al
+        
+        endp
+        
+
 New09       proc 
         ;mov ax, 1111h
         ;mov bx, 2222h
-        ;mov cx, 3333h
-        ;mov dx, 4444h
-        ;mov es, 5555h
-        ;mov si, 6666h
-        ;mov ax, 1111h
-        ;mov di, 7777h
+
         push ax
         push bx
         push cx
@@ -84,6 +150,7 @@ New09       proc
             ;---------------------------------------------------------------------------
             ;                               DRAW FRAME
             ;---------------------------------------------------------------------------
+            
             mov si, offset StyleStr ;mov si, offset StyleStr
 
             mov bx, 0b800h
@@ -95,6 +162,8 @@ New09       proc
             ;mov bx, 0FABCh
             ;call Print_value
             call PrintRegisters
+
+            mov Active, 1
             ;---------------------------------------------------------------------------
         NOFRAME:
         ;mov es:[bx], ax
@@ -147,10 +216,6 @@ New09       proc
 ;Destr: CX SI DI AX BX BP
 ;---------------------------------------------------------------
 DrawFrame proc 
-        xor ax, ax
-        xor bx, bx
-        xor dx, dx
-        xor cx, cx
         mov ah, Color_style
         call DrawStr                            ;Print the first string
 
@@ -312,7 +377,6 @@ PrintCycle:
 
        loop PrintCycle
 
-
         ret
 
         endp
@@ -432,8 +496,7 @@ Print_value proc
 
 
 .data 
-AdrInStack dw 0
-String db 'Hello its me$'
+Active dw 0
 RegisterString db 'ax = bx = cx = dx = es = si = ds = di = $'
 num_of_registers = 8
 num_of_elements = 5
@@ -443,8 +506,6 @@ Begin_X    dw 16
 Begin_Y    dw 5
 Height     dw 16
 Len        dw 26
-Regym      dw 0
-
 Space = 20h
 Num_9 = 39h
 Num_0 = 30h
