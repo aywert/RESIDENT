@@ -15,22 +15,12 @@ start:
         mov ax, es:[bx+2]
         mov Old08Segment, ax
 
-        ;int 08h                     ; calls old 9th interruptions
-
         cli                         ; resctiction to operate interruptions
         mov es:[bx], offset New08
         push cs
         pop  ax
         mov es:[bx+2], ax           ; segment address in th interruotion table
         sti                         ; permision to operate interruptions
-        
-        ;int 08h 
-
-        ;mov ah, 31h
-        ;mov dx, offset End_Of_Programm
-        ;shr dx, 4
-        ;inc dx
-        ;int 21h
 
 
 ;----------------------------------------------------------------------------
@@ -38,14 +28,12 @@ start:
 ;----------------------------------------------------------------------------
         xor ax, ax                  ; ax = 0000
         mov es, ax                  ; es = address of interruptions table in RAM 
-        mov bx, 09h * 4             ; colculate address of New09 int
+        mov bx, 09h * 4             ; calculate address of New09 int
 
         mov ax, es:[bx]
         mov Old09RelAdrs, ax
         mov ax, es:[bx+2]
         mov Old09Segment, ax
-
-        ;int 09h                     ; calls old 9th interruptions
 
         cli                         ; resctiction to operate interruptions
         mov es:[bx], offset New09
@@ -56,18 +44,17 @@ start:
         
          
 ;-----------------------------------------------------------------------------------
-        int 09h
-        int 08h
-
-        mov ah, 31h
+        
+        TODO: more comments
+        mov ah, 31h                
         mov dx, offset End_Of_Programm
         shr dx, 4
-        inc dx
+        inc dx                          ;memory size to keep resident, in 16 - byte paragraphs
         int 21h
 
         
 New08   proc
-        push ax
+        push ax                         
         push bx
         push cx
         push dx
@@ -75,28 +62,23 @@ New08   proc
         push si
         push ds
         push di
+        push ss
 
-        push cs
-        pop ds
+        push cs                         ;when interuption starts dos go to the table of interupts where we heve earlier put code-segment where function New09 was defined    
+        pop ds                          ;To properly work function New09 needs variables defined in according segment.
 
-        cmp Active, 1
+        cmp Active, 1                   ;variable is a flag responsible for printing registers 
         jne NOREGISTERS
-        ;mov si, offset StyleStr ;mov si, offset StyleStr
 
-        ;mov bx, 0b800h
-        ;mov es, bx
-        ;call CntStartPosition
-
-        ;call DrawFrame
-        mov bx, 0b800h
+        mov bx, 0b800h                  ;puts videoserment in es register
         mov es, bx
-        mov ah, Color_style
-        ;mov bx, 0FABCh
-        ;call Print_value
+        mov ah, Color_style             ;sets colorstyle for registers 
+
         call PrintRegisters
 
         NOREGISTERS:
 
+        pop ss
         pop di
         pop ds
         pop si
@@ -106,24 +88,14 @@ New08   proc
         pop bx
         pop ax
 
-        nop
-        nop
-        nop
-
         db 0eah 
         Old08RelAdrs dw 0
         Old08Segment dw 0
-
-        ;mov al, 20h
-        ;out 20h, al
         
         endp
         
 
 New09       proc 
-        ;mov ax, 1111h
-        ;mov bx, 2222h
-
         push ax
         push bx
         push cx
@@ -132,53 +104,38 @@ New09       proc
         push si
         push ds
         push di
+        push ss
+
+        push cs                 ;when interuption starts dos go to the table of interupts where we heve earlier put code-segment where function New09 was defined  
+        pop ds                  ;To properly work function New09 needs variables defined in according segment.
+
         
-        ;push bp
-        ;CX SI DI AX BX BP
 
-        push cs
-        pop ds
-
-        mov ax, 0b800h
-        mov es, ax
-        mov ah, 4eh
-        ;mov bx, 5*80*2 + 40*2
-
-        in al, 60h
-        cmp al, 58h
+        in al, 60h              ;fetches most recent scan code
+        cmp al, 58h             ;check if the last scan code is f12
         jne NOFRAME
-            ;---------------------------------------------------------------------------
-            ;                               DRAW FRAME
-            ;---------------------------------------------------------------------------
-            
-            mov si, offset StyleStr ;mov si, offset StyleStr
 
-            mov bx, 0b800h
-            mov es, bx
-            call CntStartPosition
-    
-            call DrawFrame
-            mov ah, Color_style
-            ;mov bx, 0FABCh
-            ;call Print_value
-            call PrintRegisters
-
-            mov Active, 1
-            ;---------------------------------------------------------------------------
-        NOFRAME:
-        ;mov es:[bx], ax
-
-        ;in al, 61h
-        ;mov ah, al
-        ;or al, 80h
-        ;out 61h, al
-        ;mov al, ah
-        ;out 61h, al
-
-        ;mov al, 20h
-        ;out 20h, al
-        ;pop bp
+        ;---------------------------------------------------------------------------
+        ;                               DRAW FRAME
+        ;---------------------------------------------------------------------------
         
+        mov si, offset StyleStr ;mov si, offset StyleStr
+
+        mov ah, Color_style     ;sets colorstyle for registers 
+        mov bx, 0b800h          ;puts videosegment in es register
+        mov es, bx
+        call CntStartPosition
+
+        call DrawFrame
+        mov ah, Color_style
+        call PrintRegisters
+
+        mov Active, 1
+        ;---------------------------------------------------------------------------
+
+        NOFRAME:
+        
+        pop ss
         pop di
         pop ds
         pop si
@@ -191,17 +148,8 @@ New09       proc
         db 0eah 
         Old09RelAdrs dw 0
         Old09Segment dw 0
-        ;mov ax, 4c00h
-        ;int 21h
-
-        ;ret 
+ 
         endp
-
-
-
-
-
-
 
 
                                 ;STUFF RELATED TO FRAME
@@ -225,25 +173,12 @@ DrawFrame proc
 
         ;TODO: function that do this fignia
         Cycle:                                  ;Print middle strings
-                call DrawStr
-                sub si, 3
+        call DrawStr
+        sub si, 3
         loop Cycle
 
         add si, 3
         call DrawStr                            ;Print the last string
-
-        ;call CntStringPosition                  ;mov di, (Begin_Y + Height/2 - 1)*80*2 + 2*(Begin_X + Len/2 - 1)
-                                                
-        ;mov si, offset String
-        ;call CntLenString                       ;AX = lengths
-
-        ;push ax                                 
-        ;shr ax, 1
-        ;shl ax, 1
-        ;sub di, ax                              ;shifting DX on length/2
-        ;pop ax
-        
-        ;call DrawRdmString
 
         ret 
         endp
@@ -263,13 +198,13 @@ DrawStr proc
                                         ;inc si
         stosw                           ;печатаю первый символ 3 байтовой последовательности 
         
-        mov al, ds:[si]
+        lodsb
+
         mov cx, Len
         sub cx, 2                       ;cx = Len - 2
                        
         rep stosw                       ;печатаю последовательность из второго символа len-2 раза
         
-        inc si
         lodsb                           ;mov al, ds:[si]
                                         ;inc si
         stosw                           ;печатаю последний символ 3 байтовой последовательности
@@ -278,7 +213,7 @@ DrawStr proc
 
         mov bx, Len
         shl bx, 1
-        mov dx, 160
+        mov dx, 80*2
         sub dx, bx
         add di, dx                      ;add di, 160 - 2*Len
         ret 
@@ -333,7 +268,7 @@ CntStartPosition proc           ;(Begin_Y-1)*80*2 + (Begin_X-1)*2
 
         mov ax, Begin_Y                 ;mov ax, [offset Begin_Y]
         dec ax
-        mov bx, 160
+        mov bx, 2*80
         mul bx
         
         mov bx, Begin_X                 ;mov bx, [offset Begin_X]
@@ -359,15 +294,11 @@ PrintRegisters    proc
         mov si, offset RegisterString
 
         mov bx, sp
-        add bx, 18 
-        mov cx, num_of_registers ; Number 0f registers
+        add bx, 20
+        mov cx, num_of_registers
 PrintCycle:
         sub bx, 2
         
-        
-        ;mov dx, bx
-        ;mov al, 09h
-        ;int 21h
         call PrintStrReg
 
         mov dx, ss:[bx]
@@ -432,14 +363,12 @@ Print_value proc
         and ah, 0F0h
         shr ah, 4
         mov al, ah
-        ;mov ah, Color_style
         call  int_to_acsii
         stosw
 
         mov ax, dx
         and ah, 0Fh
         mov al, ah
-        ;mov ah, Color_style
         call int_to_acsii
         stosw
 
@@ -449,9 +378,7 @@ Print_value proc
         stosw
 
         mov ax, dx
-        ;mov ah, Color_style
         and al, 0Fh
-        ;shr al, 4
         call int_to_acsii
         stosw
 
@@ -497,8 +424,8 @@ Print_value proc
 
 .data 
 Active dw 0
-RegisterString db 'ax = bx = cx = dx = es = si = ds = di = $'
-num_of_registers = 8
+RegisterString db 'ax = bx = cx = dx = es = si = ds = di = ss = $'
+num_of_registers = 9
 num_of_elements = 5
 StyleStr db '1-1&^&7#7$'
 Color_style db 01011010b
